@@ -5,6 +5,7 @@
 #include <gl/glaux.h>
 #include <glm/trigonometric.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include "glm/gtx/transform.hpp"
 #include <iostream>
 #include "GL/SOIL.h"
 #include <assimp/Importer.hpp>
@@ -12,6 +13,8 @@
 #include <assimp/postprocess.h>
 #include <vector>
 #include "GLShader.h"
+#include "Light.h"
+#include "Material.h"
 
 using namespace std;
 
@@ -79,21 +82,7 @@ private:
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
 
-		// Устанавливаем указатели вершинных атрибутов
-
-		// Координаты вершин
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
-
-		// Нормали вершин
-		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Normal));
-
-		// Текстурные координаты вершин
-		glEnableVertexAttribArray(2);
-		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, TexCoords));
-
-		glBindVertexArray(0);
+		
 	}
 };
 class Model
@@ -218,7 +207,7 @@ void checkOpenGLerror()
 //! Инициализация шейдеров 
 void initShader()
 {
-	glShader.loadFiles("shaders/vertex3.txt", "shaders/fragment3.txt");
+	glShader.loadFiles("shaders/vertex31.txt", "shaders/fragment31.txt");
 	checkOpenGLerror();
 }
 
@@ -277,36 +266,62 @@ void render()
 	glm::mat4 Projection = glm::perspective(glm::radians(45.0f), 4.0f / 3.0f, 0.1f, 1000.0f);
 	glm::mat4 View = glm::lookAt(glm::vec3(40, 40, 40), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
 
-	glm::mat4 rotate_y = { glm::cos(angle_x), 0.0f, glm::sin(angle_x), 0.0f,
+	/*glm::mat4 rotate_y = { glm::cos(angle_x), 0.0f, glm::sin(angle_x), 0.0f,
 					   0.0f, 1, 0, 0.0f,
 					   -glm::sin(angle_x),0, glm::cos(angle_x), 0.0f,
 					   0.0f, 0.0f, 0.0f, 1.0f };
 
-	Matrix_projection = Projection * View * rotate_y;
+	Matrix_projection = Projection * View * rotate_y;*/
+
+	glm::mat4 rotate_x = glm::rotate(0.0f, vec3(1.0f, 0.0f, 0.0f));
+	glm::mat4 rotate_y = glm::rotate((float)angle_x, vec3(0.0f, 1.0f, 0.0f));
+	glm::mat4 rotate_z = glm::rotate(0.0f, vec3(0.0f, 0.0f, 1.0f));
+	glm::mat4 scale = glm::scale(vec3(1.0f, 1.0f, 1.0f));
+	glm::mat4 translate = glm::translate(vec3(0.0f, 1.0f, 0.0f));
 
 	//! Устанавливаем шейдерную программу текущей 
-		//glUseProgram(Program);
-	glShader.use();
-	//glUniformMatrix4fv(Unif_matrix, 1, GL_FALSE, &Matrix_projection[0][0]);
-	glShader.setUniform(glShader.getUniformLocation("matrix"), Matrix_projection);
-	/*
-	// Position attribute
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
-	glEnableVertexAttribArray(0);
-	// Color attribute
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
-	glEnableVertexAttribArray(1);
-	// TexCoord attribute
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(6 * sizeof(GLfloat)));
-	glEnableVertexAttribArray(2);
 
-	glBindVertexArray(0); // Unbind VAO*/
+	glm::mat4 Model = translate * rotate_x * rotate_y * rotate_z * scale; // для каждого нового объекта можно убрать лишние перемножения матриц
+	glm::mat4 ViewProjection = Projection * View;
+	glm::mat3 normalMatrix = glm::transpose(glm::inverse(Model));
+
+	glShader.use();
+	//glShader.setUniform(glShader.getUniformLocation("matrix"), Matrix_projection);
+
+	glShader.setUniform(glShader.getUniformLocation("transform.model"), Model);
+	glShader.setUniform(glShader.getUniformLocation("transform.viewProjection"), ViewProjection);
+	glShader.setUniform(glShader.getUniformLocation("transform.normal"), normalMatrix);
+	glShader.setUniform(glShader.getUniformLocation("transform.viewPosition"), vec3(4, 3, 3));
+
+	set_uniform_point_light(glShader, get_some_point_light());
+	set_uniform_material(glShader, get_some_material());
+
+	// Устанавливаем указатели вершинных атрибутов
+
+	// Координаты вершин
+	glEnableVertexAttribArray(glShader.getAttribLocation("position"));
+	glVertexAttribPointer(glShader.getAttribLocation("position"), 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+
+	// Текстурные координаты вершин
+	glEnableVertexAttribArray(glShader.getAttribLocation("texcoord"));
+	glVertexAttribPointer(glShader.getAttribLocation("texcoord"), 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, TexCoords));
+
+	// Нормали вершин
+	glEnableVertexAttribArray(glShader.getAttribLocation("normal"));
+	glVertexAttribPointer(glShader.getAttribLocation("normal"), 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Normal));
+
+	glBindVertexArray(0);
+
+
 
 	// Bind Textures using texture units
+
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, texture);
-	glShader.setUniform(glShader.getUniformLocation("ourTexture"), 0);
-	//glUniform1i(glGetUniformLocation(Program, "ourTexture"), 0);
+	glShader.setUniform(glShader.getUniformLocation("texture1"), 0);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glShader.setUniform(glShader.getUniformLocation("texture2"), 0);
 
 	GLsizei count = 0;
 	for (auto mesh : OURmodel.meshes)

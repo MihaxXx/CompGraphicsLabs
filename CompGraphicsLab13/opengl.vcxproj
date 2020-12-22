@@ -156,6 +156,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GLShader.cpp" />
+    <ClCompile Include="Light.cpp" />
+    <ClCompile Include="Material.cpp" />
     <ClCompile Include="task1.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -171,6 +173,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GLShader.h" />
+    <ClInclude Include="Light.h" />
+    <ClInclude Include="Material.h" />
   </ItemGroup>
   <ItemGroup>
     <CopyFileToFolders Include="..\GlutGlew\assimp\bin\assimp-vc141-mtd.dll">
