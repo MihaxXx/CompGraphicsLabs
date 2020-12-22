@@ -27,6 +27,12 @@
     <CopyFileToFolders Include="..\GlutGlew\glew\bin\Release\Win32\glew32.dll">
       <Filter>Resource Files</Filter>
     </CopyFileToFolders>
+    <CopyFileToFolders Include="..\GlutGlew\assimp\x64\bin\assimp-vc141-mtd.dll">
+      <Filter>Resource Files</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="..\GlutGlew\assimp\bin\assimp-vc141-mtd.dll">
+      <Filter>Resource Files</Filter>
+    </CopyFileToFolders>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="task1.cpp">
@@ -55,13 +61,5 @@
     <ClInclude Include="Material.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\GlutGlew\assimp\bin\assimp-vc141-mtd.dll">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="..\GlutGlew\assimp\x64\bin\assimp-vc141-mtd.dll">
-      <Filter>Resource Files</Filter>
-    </None>
   </ItemGroup>
 </Project>
