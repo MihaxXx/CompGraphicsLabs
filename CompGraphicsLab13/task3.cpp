@@ -11,10 +11,11 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include <vector>
+#include "GLShader.h"
 
 using namespace std;
 
-GLint Program;
+GLShader glShader;
 
 GLint Unif_matrix;
 
@@ -195,7 +196,7 @@ public:
 	}
 };
 
-Model mod;
+Model OURmodel;
 
 //! Вершина 
 struct vertex
@@ -204,27 +205,6 @@ struct vertex
 	GLfloat y;
 	GLfloat z;
 };
-
-//! Функция печати лога шейдера 
-void shaderLog(unsigned int shader)
-{
-	int   infologLen = 0;
-	int   charsWritten = 0;
-	char* infoLog;
-	glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infologLen);
-	if (infologLen > 1)
-	{
-		infoLog = new char[infologLen];
-		if (infoLog == NULL)
-		{
-			std::cout << "ERROR: Could not allocate InfoLog buffer\n";
-			exit(1);
-		}
-		glGetShaderInfoLog(shader, infologLen, &charsWritten, infoLog);
-		std::cout << "InfoLog: " << infoLog << "\n\n\n";
-		delete[] infoLog;
-	}
-}
 
 
 //! Проверка ошибок OpenGL, если есть то вывод в консоль тип ошибки 
@@ -238,67 +218,7 @@ void checkOpenGLerror()
 //! Инициализация шейдеров 
 void initShader()
 {
-	//! Исходный код шейдеров  	
-	const char* vsSource =
-		"#version 330 core\n"
-		"layout(location = 0) in vec3 position;\n"
-		"layout(location = 1) in vec3 color;\n"
-		"layout(location = 2) in vec2 texCoord;\n"
-		"uniform mat4 matrix;\n"
-		"out vec3 ourColor;\n" // выходной параметр — собственный цвет
-		"out vec2 TexCoord;\n" // выходной параметр — текстурный цвет
-		"void main()\n"
-		"{\n"
-		"gl_Position = matrix * vec4(position, 0.5f);\n"
-		"ourColor = color;\n"
-		"TexCoord = texCoord;\n"
-		"}\n";
-	const char* fsSource =
-		"in vec3 ourColor;\n"
-		"in vec2 TexCoord;\n"
-		"out vec4 color;\n"
-		"uniform sampler2D ourTexture;\n"
-		"void main() {\n"
-		"color = texture(ourTexture, TexCoord);\n" 
-		"}\n";
-	//! Переменные для хранения идентификаторов шейдеров 
-	GLuint vShader, fShader;
-	//! Создаем вершинный шейдер 
-	vShader = glCreateShader(GL_VERTEX_SHADER);
-	//! Передаем исходный код  
-	glShaderSource(vShader, 1, &vsSource, NULL);
-
-	//! Компилируем шейдер  	
-	glCompileShader(vShader);
-
-	std::cout << "vertex shader \n";
-	shaderLog(vShader);
-
-	//! Создаем фрагментный шейдер 
-	fShader = glCreateShader(GL_FRAGMENT_SHADER);
-	//! Передаем исходный код 
-	glShaderSource(fShader, 1, &fsSource, NULL);
-	//! Компилируем шейдер  	
-	glCompileShader(fShader);
-	std::cout << "fragment shader \n";  	shaderLog(fShader);
-
-	//! Создаем программу и прикрепляем шейдеры к ней 
-	Program = glCreateProgram();  	glAttachShader(Program, vShader);  	glAttachShader(Program, fShader);
-
-	//! Линкуем шейдерную программу  	
-	glLinkProgram(Program);
-
-	//! Проверяем статус сборки 
-	int link_ok;
-	glGetProgramiv(Program, GL_LINK_STATUS, &link_ok);  	if (!link_ok)
-	{
-		std::cout << "error attach shaders \n";
-		return;
-	}
-
-	const char* attr_name = "matrix";
-	Unif_matrix = glGetUniformLocation(Program, attr_name);
-
+	glShader.loadFiles("shaders/vertex3.txt", "shaders/fragment3.txt");
 	checkOpenGLerror();
 }
 
@@ -326,81 +246,7 @@ void text()
 //! Инициализация VBO 
 void initVBO()
 {
-	GLfloat vertices[] = {
 
-		// лицевая грань
-		// Positions          // Colors           // Texture Coords
-		 0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f, //0 = 7 // Top Right
-		 0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f, //1 = 8 // Bottom Right
-		-0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f, //2 = 12 // Bottom Left
-		-0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f, //3 = 11 // Top Left 
-
-		// верхняя крышка
-		 // Positions          // Colors           // Texture Coords
-		 0.5f,  0.5f, -1.0f,   1.0f, 0.5f, 0.0f,   1.0f, 0.0f, //4
-		-0.5f,  0.5f, -1.0f,   1.0f, 1.0f, 0.5f,   0.0f, 0.0f, //5
-
-		// правая боковая крышка
-		0.5f,  -0.5f, -1.0f,   1.0f, 0.5f, 0.5f,  0.0f, 0.0f, //6 = 10
-		0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f, //7 = 0
-		0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,  0.0f, 1.0f, //8 = 1
-
-		// Дальняя крышка
-		-0.5f,  -0.5f, -1.0f,   1.0f, 0.0f, 1.0f,  0.0f, 1.0f,  // 9
-		0.5f,  -0.5f, -1.0f,    1.0f, 0.5f, 0.5f,  1.0f, 1.0f,// 10 = 6
-
-		// Левая крышка 
-		-0.5f, 0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   1.0f, 0.0f, // 11 = 3
-		-0.5f,  -0.5f, 0.0f,  0.0f, 0.0f, 1.0f,     1.0f, 1.0f, // 12 = 2
-	};
-	GLuint indices[] = {
-		// лицевая грань
-		0, 1, 3,
-		1, 2, 3,
-
-		// верхняя крышка
-		0, 3, 5,
-		0, 4, 5,
-
-		// правая крышка
-		7, 8, 6,
-		7, 6, 4,
-
-		// дальняя крышка
-		5, 9, 10,
-		5, 10, 4,
-
-		// Нижняя крышка
-		2, 9, 1,
-		9, 10, 1,
-
-		//левая крышка
-		11, 12, 9,
-		11, 9, 5
-	};
-
-	/*glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
-	glGenBuffers(1, &EBO);*/
-
-	glBindVertexArray(VAO);
-
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-	checkOpenGLerror();
-}
-
-//! Освобождение шейдеров 
-void freeShader()
-{
-	//! Передавая ноль, мы отключаем шейдрную программу 
-	glUseProgram(0);
-	//! Удаляем шейдерную программу  
-	glDeleteProgram(Program);
 }
 
 //! Освобождение буфера
@@ -439,8 +285,10 @@ void render()
 	Matrix_projection = Projection * View * rotate_y;
 
 	//! Устанавливаем шейдерную программу текущей 
-	glUseProgram(Program);
-	glUniformMatrix4fv(Unif_matrix, 1, GL_FALSE, &Matrix_projection[0][0]);
+		//glUseProgram(Program);
+	glShader.use();
+	//glUniformMatrix4fv(Unif_matrix, 1, GL_FALSE, &Matrix_projection[0][0]);
+	glShader.setUniform(glShader.getUniformLocation("matrix"), Matrix_projection);
 	/*
 	// Position attribute
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
@@ -457,10 +305,11 @@ void render()
 	// Bind Textures using texture units
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, texture);
-	glUniform1i(glGetUniformLocation(Program, "ourTexture"), 0);
+	glShader.setUniform(glShader.getUniformLocation("ourTexture"), 0);
+	//glUniform1i(glGetUniformLocation(Program, "ourTexture"), 0);
 
 	GLsizei count = 0;
-	for (auto mesh : mod.meshes)
+	for (auto mesh : OURmodel.meshes)
 		count += mesh.indices.size();
 
 	// Draw container
@@ -510,7 +359,7 @@ int main(int argc, char** argv)
 	glClearColor(0.5, 0.5, 0.5, 0);
 
 	text();
-	mod = Model("medieval house.obj");
+	OURmodel = Model("medieval house.obj");
 	//initVBO();
 	initShader();
 	glutReshapeFunc(resizeWindow);
@@ -519,6 +368,5 @@ int main(int argc, char** argv)
 	glutMainLoop();
 
 	//! Освобождение ресурсов  
-	freeShader();
 	freeVBO();
 }
