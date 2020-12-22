@@ -72,15 +72,13 @@ GLuint GLShader::loadFiles(const string& vertex_file_name, const string& fragmen
 	string s;
 	string vSourse = "";
 	ifstream f(vertex_file_name);
-	while (!f.eof()) {
-		f >> s;
+	while (getline(f, s)) {
 		vSourse += s + "\n";
 	}
 	f.close();
 	string fSourse = "";
 	ifstream f1(fragment_file_name);
-	while (!f1.eof()) {
-		f1 >> s;
+	while (getline(f1,s)) {
 		fSourse += s + "\n";
 	}
 	f1.close();

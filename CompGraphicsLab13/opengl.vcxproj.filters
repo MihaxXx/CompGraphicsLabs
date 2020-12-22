@@ -44,4 +44,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\GlutGlew\assimp\bin\assimp-vc141-mtd.dll">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\GlutGlew\assimp\x64\bin\assimp-vc141-mtd.dll">
+      <Filter>Resource Files</Filter>
+    </None>
+  </ItemGroup>
 </Project>

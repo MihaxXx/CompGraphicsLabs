@@ -30,7 +30,7 @@ void checkOpenGLerror()
 {
 	GLenum errCode;
 	if ((errCode = glGetError()) != GL_NO_ERROR)
-		std::cout << "OpenGl error! - " << gluErrorString(errCode);
+		std::cout << "OpenGl error! - " << gluErrorString(errCode) << "\n";
 }
 
 //! Инициализация шейдеров 
@@ -225,7 +225,7 @@ void render()
 
 	glFlush();
 
-	checkOpenGLerror();
+	//checkOpenGLerror();
 
 	glutSwapBuffers();
 

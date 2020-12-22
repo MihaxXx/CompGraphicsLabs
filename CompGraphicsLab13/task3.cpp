@@ -212,7 +212,7 @@ void checkOpenGLerror()
 {
 	GLenum errCode;
 	if ((errCode = glGetError()) != GL_NO_ERROR)
-		std::cout << "OpenGl error! - " << gluErrorString(errCode);
+		std::cout << "OpenGl error! - " << gluErrorString(errCode)<< "\n";
 }
 
 //! Инициализация шейдеров 
@@ -319,7 +319,7 @@ void render()
 
 	glFlush();
 
-	checkOpenGLerror();
+	//checkOpenGLerror();
 
 	glutSwapBuffers();
 
@@ -330,7 +330,7 @@ void render()
 
 int main(int argc, char** argv)
 {
-	setlocale(0, "");
+	setlocale(0, "RU");
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DEPTH | GLUT_RGBA | GLUT_ALPHA | GLUT_DOUBLE);
 	glutInitWindowSize(1000, 800);
