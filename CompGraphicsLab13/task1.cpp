@@ -7,13 +7,15 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 #include "GL/SOIL.h"
+#include "GLShader.h"
 using namespace std;
 
-GLint Program;
 
 GLint Unif_matrix;
 
 glm::mat4 Matrix_projection;
+
+GLShader glShader;
 
 //! Вершина 
 struct vertex
@@ -22,28 +24,6 @@ struct vertex
 	GLfloat y;
 	GLfloat z;
 };
-
-//! Функция печати лога шейдера 
-void shaderLog(unsigned int shader)
-{
-	int   infologLen = 0;
-	int   charsWritten = 0;
-	char* infoLog;
-	glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infologLen);
-	if (infologLen > 1)
-	{
-		infoLog = new char[infologLen];
-		if (infoLog == NULL)
-		{
-			std::cout << "ERROR: Could not allocate InfoLog buffer\n";
-			exit(1);
-		}
-		glGetShaderInfoLog(shader, infologLen, &charsWritten, infoLog);
-		std::cout << "InfoLog: " << infoLog << "\n\n\n";
-		delete[] infoLog;
-	}
-}
-
 
 //! Проверка ошибок OpenGL, если есть то вывод в консоль тип ошибки 
 void checkOpenGLerror()
@@ -56,71 +36,7 @@ void checkOpenGLerror()
 //! Инициализация шейдеров 
 void initShader()
 {
-	//! Исходный код шейдеров  	
-	const char* vsSource =
-		"#version 330 core\n"
-		"layout(location = 0) in vec3 position;\n"
-		"layout(location = 1) in vec3 color;\n"
-		"layout(location = 2) in vec2 texCoord;\n"
-		"uniform mat4 matrix;\n"
-		"out vec3 ourColor;\n" // выходной параметр — собственный цвет
-		"out vec2 TexCoord;\n" // выходной параметр — текстурный цвет
-		"void main()\n"
-		"{\n"
-		"gl_Position = matrix * vec4(position, 0.5f);\n"
-		"ourColor = color;\n"
-		"TexCoord = texCoord;\n"
-		"}\n";
-	const char* fsSource =
-		"in vec3 ourColor;\n"
-		"in vec2 TexCoord;\n"
-		"out vec4 color;\n"
-		"uniform sampler2D ourTexture1;\n"
-		"uniform sampler2D ourTexture2;\n"
-		"void main() {\n"
-		//"color = texture(ourTexture1, TexCoord);\n"  //1 текстура 
-		//"color = texture(ourTexture1, TexCoord)  * vec4(ourColor, 1.0f);\n" //  1 текстура + цвет 
-		//" color = mix(texture(ourTexture1, TexCoord), texture(ourTexture2, TexCoord), 0.5);\n" // 2 текстуры
-		" color = mix(texture(ourTexture1, TexCoord), texture(ourTexture2, TexCoord), 0.5) * vec4(ourColor, 1.0f);\n" // 2 текстуры + цвет
-		"}\n";
-	//! Переменные для хранения идентификаторов шейдеров 
-	GLuint vShader, fShader;
-	//! Создаем вершинный шейдер 
-	vShader = glCreateShader(GL_VERTEX_SHADER);
-	//! Передаем исходный код  
-	glShaderSource(vShader, 1, &vsSource, NULL);
-
-	//! Компилируем шейдер  	
-	glCompileShader(vShader);
-
-	std::cout << "vertex shader \n";
-	shaderLog(vShader);
-
-	//! Создаем фрагментный шейдер 
-	fShader = glCreateShader(GL_FRAGMENT_SHADER);
-	//! Передаем исходный код 
-	glShaderSource(fShader, 1, &fsSource, NULL);
-	//! Компилируем шейдер  	
-	glCompileShader(fShader);
-	std::cout << "fragment shader \n";  	shaderLog(fShader);
-
-	//! Создаем программу и прикрепляем шейдеры к ней 
-	Program = glCreateProgram();  	glAttachShader(Program, vShader);  	glAttachShader(Program, fShader);
-
-	//! Линкуем шейдерную программу  	
-	glLinkProgram(Program);
-
-	//! Проверяем статус сборки 
-	int link_ok;
-	glGetProgramiv(Program, GL_LINK_STATUS, &link_ok);  	if (!link_ok)
-	{
-		std::cout << "error attach shaders \n";
-		return;
-	}
-
-	const char* attr_name = "matrix";
-	Unif_matrix = glGetUniformLocation(Program, attr_name);
-
+	glShader.loadFiles("shaders/vertex.txt", "shaders/fragment.txt");
 	checkOpenGLerror();
 }
 
@@ -231,14 +147,7 @@ void initVBO()
 	checkOpenGLerror();
 }
 
-//! Освобождение шейдеров 
-void freeShader()
-{
-	//! Передавая ноль, мы отключаем шейдрную программу 
-	glUseProgram(0);
-	//! Удаляем шейдерную программу  
-	glDeleteProgram(Program);
-}
+
 
 //! Освобождение буфера
 void freeVBO()
@@ -281,8 +190,10 @@ void render()
 	Matrix_projection = Projection * View * rotate_y * rotate_x;
 
 	//! Устанавливаем шейдерную программу текущей 
-	glUseProgram(Program);
-	glUniformMatrix4fv(Unif_matrix, 1, GL_FALSE, &Matrix_projection[0][0]);
+	//glUseProgram(Program);
+	glShader.use();
+	//glUniformMatrix4fv(Unif_matrix, 1, GL_FALSE, &Matrix_projection[0][0]);
+	glShader.setUniform(glShader.getUniformLocation("matrix"), Matrix_projection);
 
 	// Position attribute
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
@@ -299,11 +210,13 @@ void render()
 	// Bind Textures using texture units
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, texture1);
-	glUniform1i(glGetUniformLocation(Program, "ourTexture1"), 0);
+	glShader.setUniform(glShader.getUniformLocation("ourTexture1"), 0);
+	//glUniform1i(glGetUniformLocation(Program, "ourTexture1"), 0);
 
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, texture2);
-	glUniform1i(glGetUniformLocation(Program, "ourTexture2"), 1);
+	glShader.setUniform(glShader.getUniformLocation("ourTexture2"), 1);
+//	glUniform1i(glGetUniformLocation(Program, "ourTexture2"), 1);
 
 	// Draw container
 	glBindVertexArray(VAO);
@@ -359,8 +272,7 @@ int main(int argc, char** argv)
 	glutDisplayFunc(render);
 	glutMainLoop();
 
-	//! Освобождение ресурсов  
-	freeShader();
+	
 	freeVBO();
 }
 
