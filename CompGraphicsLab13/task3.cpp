@@ -130,8 +130,9 @@ void checkOpenGLerror(string str)
 //! Инициализация шейдеров 
 void initShader()
 {
-	//glShader.loadFiles("shaders/vertex3.txt", "shaders/fragment3.txt");
-	glShader.loadFiles("shaders/vertex31.txt", "shaders/fragment31.txt");
+	//glShader.loadFiles("shaders/vertex_light.txt", "shaders/fragment_blinn.txt");
+	//glShader.loadFiles("shaders/vertex_light.txt", "shaders/fragment_toon_shading.txt");
+	glShader.loadFiles("shaders/vertex_light.txt", "shaders/fragment_bidirectional.txt");
 	checkOpenGLerror("initShader");
 }
 
@@ -205,7 +206,6 @@ void resizeWindow(int width, int height)
 	glViewport(0, 0, width, height);
 }
 
-/*
 //! Отрисовка 
 void render()
 {
@@ -214,55 +214,7 @@ void render()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glm::mat4 Projection = glm::perspective(glm::radians(45.0f), 4.0f / 3.0f, 0.1f, 1000.0f);
-	glm::mat4 View = glm::lookAt(glm::vec3(10, 10, 10), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
-
-	glm::mat4 rotate_y = { glm::cos(angle_x), 0.0f, glm::sin(angle_x), 0.0f,
-					   0.0f, 1, 0, 0.0f,
-					   -glm::sin(angle_x),0, glm::cos(angle_x), 0.0f,
-					   0.0f, 0.0f, 0.0f, 1.0f };
-
-	Matrix_projection = Projection * View * rotate_y;
-
-	//! Устанавливаем шейдерную программу текущей 
-	glShader.use();
-	glShader.setUniform(glShader.getUniformLocation("matrix"), Matrix_projection);
-
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VBO_element);
-
-	glEnableVertexAttribArray(glShader.getAttribLocation("texCoord"));
-	glBindBuffer(GL_ARRAY_BUFFER, VBO_texcoord);
-	glVertexAttribPointer(glShader.getAttribLocation("texCoord"), 2, GL_FLOAT, GL_FALSE, 0, 0);
-
-	glEnableVertexAttribArray(glShader.getAttribLocation("position"));
-	glBindBuffer(GL_ARRAY_BUFFER, VBO_position);
-	glVertexAttribPointer(glShader.getAttribLocation("position"), 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-	// Bind Textures using texture units
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, texture);
-	glShader.setUniform(glShader.getUniformLocation("ourTexture"), 0);
-
-
-	glDrawElements(GL_TRIANGLES, indices_count, GL_UNSIGNED_INT, 0);
-
-	for (int i = 0; i < 2; i++)
-		glDisableVertexAttribArray(i);
-
-	glFlush();
-
-	checkOpenGLerror();
-	glutSwapBuffers();
-}*/
-
-//! Отрисовка 
-void render()
-{
-	angle_x += 0.0007;
-
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	glm::mat4 Projection = glm::perspective(glm::radians(45.0f), 4.0f / 3.0f, 0.1f, 1000.0f);
-	glm::mat4 View = glm::lookAt(glm::vec3(5, 0, 5), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+	glm::mat4 View = glm::lookAt(glm::vec3(5, 5, 5), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
 
 	glm::mat4 rotate_y = { glm::cos(angle_x), 0.0f, glm::sin(angle_x), 0.0f,
 					   0.0f, 1, 0, 0.0f,
@@ -308,12 +260,11 @@ void render()
 
 	glDrawElements(GL_TRIANGLES, indices_count, GL_UNSIGNED_INT, 0);
 
-	for (int i = 0; i < 2; i++)
-		glDisableVertexAttribArray(i);
+	glDisableVertexAttribArray(0);
+	glDisableVertexAttribArray(1);
+	glDisableVertexAttribArray(2);
 
 	glFlush();
-
-
 	glutSwapBuffers();
 }
 
