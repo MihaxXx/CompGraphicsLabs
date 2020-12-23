@@ -8,8 +8,6 @@ uniform struct PointLight{
 	vec3 attenuation;
 } light;
 uniform struct Material{
-	sampler2D texture1;
-	sampler2D texture2;
 	vec4 ambient;
 	vec4 diffuse;
 	vec4 specular;
@@ -25,24 +23,21 @@ in struct Vertex {
 	vec3 viewDir;
 	float distance;
 } Vert;
-
+uniform sampler2D ourTexture;
 void main() {
 	vec3 normal = normalize(Vert.normal);
 	vec3 lightDir = normalize(Vert.lightDir);
 	vec3 viewDir = normalize(Vert.viewDir);
 
-	float attenuation = 1.0/(light.attenuation[0] +
-	light.attenuation[1] * Vert.distance +
-	light.attenuation[2] * Vert.distance * Vert.distance); 	
+	float attenuation = 1.0/(light.attenuation[0] + light.attenuation[1] * Vert.distance + light.attenuation[2] * Vert.distance * Vert.distance); 	
 
 	vec4 color = material.emission;
 	color += material.ambient * light.ambient * attenuation;
 	float Ndot = max(dot(normal,lightDir),0.0);
-	color +=material.diffuse * light.diffuse * Ndot* attenuation;
+	color += material.diffuse * light.diffuse * Ndot* attenuation;
 
-	float RdotVpow = max(pow(
-		dot(reflect (-lightDir, normal), viewDir), material.shininess),0.0);
+	float RdotVpow = max(pow(dot(reflect (-lightDir, normal), viewDir), material.shininess),0.0);
 	color += material.specular * light.specular * RdotVpow * attenuation;
 		
-	gl_FragColor = color  * material.color_obj;
+	gl_FragColor = color  * texture(ourTexture, Vert.texcoord);
 }

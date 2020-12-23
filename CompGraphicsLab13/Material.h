@@ -11,7 +11,7 @@ struct Material
 	glm::vec4 emission;
 	float shininess;
 	glm::vec4 color_obj;
-	//texture
+	
 };
 
 Material get_some_material();

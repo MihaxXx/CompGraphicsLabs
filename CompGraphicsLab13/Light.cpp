@@ -4,11 +4,11 @@
 PointLight get_some_point_light()
 {
 	PointLight l;
-	l.position = glm::vec4(2.5, 1.5, 0, 1.0);
-	l.ambient = glm::vec4(0.2, 0.2, 0.2, 1.0);
+	l.position = glm::vec4(3, 0, 2, 1.0);
+	l.ambient = glm::vec4(0.4, 0.4, 0.4, 1.0);
 	l.diffuse = glm::vec4(0.7, 0.7, 0.7, 1.0);
 	l.specular = glm::vec4(1.0, 1.0, 1.0, 1.0);
-	l.attenuation = glm::vec3(1.0, 1.0, 1.0);
+	l.attenuation = glm::vec3(0.1, 0.1, 0.1);
 	return l;
 }
 

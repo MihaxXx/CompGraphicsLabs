@@ -26,78 +26,23 @@ glm::mat4 Matrix_projection;
 
 GLuint VBO, VAO, EBO;
 
-struct Vertex 
-{
-	glm::vec3 Position; // Позиция
-	glm::vec3 Normal; // Нормаль
-	glm::vec2 TexCoords; // Текстурные координаты
-};
+GLuint VBO_position, VBO_texcoord, VBO_normal, VBO_element;
 
-struct Texture 
-{
-	unsigned int id;
-	string type;
-	string path;
-};
-
-class Mesh 
-{
-public:
-	// Данные меша
-	vector<Vertex> vertices;
-	vector<unsigned int> indices;
-	//unsigned int VAO;
-
-	// Конструктор
-	Mesh(vector<Vertex> vertices, vector<unsigned int> indices)
-	{
-		this->vertices = vertices;
-		this->indices = indices;
-
-		// Теперь, когда у нас есть все необходимые данные, устанавливаем вершинные буферы и указатели атрибутов
-		setupMesh();
-	}
-
-private:
-	// Данные для рендеринга 
-	//unsigned int VBO, EBO;
-
-	// Инициализируем все буферные объекты/массивы
-	void setupMesh()
-	{
-		// Создаем буферные объекты/массивы
-		glGenVertexArrays(1, &VAO);
-		glGenBuffers(1, &VBO);
-		glGenBuffers(1, &EBO);
-
-		glBindVertexArray(VAO);
-
-		// Загружаем данные в вершинный буфер
-		glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
-		// Самое замечательное в структурах то, что расположение в памяти их внутренних переменных является последовательным.
-		// Смысл данного трюка в том, что мы можем просто передать указатель на структуру, и она прекрасно преобразуется в массив данных с элементами типа glm::vec3 (или glm::vec2), который затем будет преобразован в массив данных float, ну а в конце – в байтовый массив
-		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW);
-
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
-
-		
-	}
-};
 class Model
 {
 public:
+
+	vector<glm::vec3> vertices_m = vector<glm::vec3>();
+	vector<glm::vec2> tex_coords = vector<glm::vec2>();
+	vector<glm::vec3> normals = vector<glm::vec3>();
+	vector<GLint> indices = vector<GLint>();
+
 	Model() {}
 
 	Model(char* path)
 	{
 		loadModel(path);
 	}
-
-	// Данные модели
-	vector<Mesh> meshes;
-	string directory;
 
 	// Загрузка модели
 	void loadModel(string path)
@@ -110,7 +55,7 @@ public:
 			cout << "ERROR::ASSIMP::" << import.GetErrorString() << endl;
 			return;
 		}
-		directory = path.substr(0, path.find_last_of('/'));
+		string directory = path.substr(0, path.find_last_of('/'));
 
 		processNode(scene->mRootNode, scene);
 	}
@@ -122,7 +67,7 @@ public:
 		for (unsigned int i = 0; i < node->mNumMeshes; i++)
 		{
 			aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-			meshes.push_back(processMesh(mesh, scene));
+			processMesh(mesh, scene);
 		}
 		// И проделываем то же самое для всех дочерних узлов
 		for (unsigned int i = 0; i < node->mNumChildren; i++)
@@ -131,84 +76,63 @@ public:
 		}
 	}
 
-	Mesh processMesh(aiMesh* mesh, const aiScene* scene)
+	void processMesh(aiMesh* mesh, const aiScene* scene)
 	{
-		// Данные для заполнения
-		vector<Vertex> vertices;
-		vector<unsigned int> indices;
-		vector<Texture> textures;
-
 		// Цикл по всем вершинам меша
 		for (unsigned int i = 0; i < mesh->mNumVertices; i++)
 		{
-			Vertex vertex;
 			glm::vec3 vector; // объявляем промежуточный вектор, т.к. Assimp использует свой собственный векторный класс, который не преобразуется напрямую в тип glm::vec3, поэтому сначала мы передаем данные в этот промежуточный вектор типа glm::vec3
 
 			// Координаты
 			vector.x = mesh->mVertices[i].x;
 			vector.y = mesh->mVertices[i].y;
 			vector.z = mesh->mVertices[i].z;
-			vertex.Position = vector;
+			vertices_m.push_back(vector);
 
 			// Нормали
 			vector.x = mesh->mNormals[i].x;
 			vector.y = mesh->mNormals[i].y;
 			vector.z = mesh->mNormals[i].z;
-			vertex.Normal = vector;
+			normals.push_back(vector);
 
 			// Текстурные координаты
 			if (mesh->mTextureCoords[0]) // если меш содержит текстурные координаты
 			{
 				glm::vec2 vec;
-				// Вершина может содержать до 8 различных текстурных координат. Мы предполагаем, что мы не будем использовать модели,
-				// в которых вершина может содержать несколько текстурных координат, поэтому мы всегда берем первый набор (0)
 				vec.x = mesh->mTextureCoords[0][i].x;
 				vec.y = mesh->mTextureCoords[0][i].y;
-				vertex.TexCoords = vec;
+				tex_coords.push_back(vec);
 			}
 			else
-				vertex.TexCoords = glm::vec2(0.0f, 0.0f);
-			vertices.push_back(vertex);
+				tex_coords.push_back(glm::vec2(0.0f, 0.0f));
 		}
 
+		GLint last_ind = indices.size();
 		// Теперь проходимся по каждой грани меша (грань - это треугольник меша) и извлекаем соответствующие индексы вершин
 		for (unsigned int i = 0; i < mesh->mNumFaces; i++)
 		{
 			aiFace face = mesh->mFaces[i];
 			// Получаем все индексы граней и сохраняем их в векторе indices
 			for (unsigned int j = 0; j < face.mNumIndices; j++)
-				indices.push_back(face.mIndices[j]);
+				indices.push_back(face.mIndices[j] + last_ind);
 		}
-
-		// Возвращаем mesh-объект, созданный на основе полученных данных
-		return Mesh(vertices, indices);
 	}
 };
 
-Model OURmodel;
-
-//! Вершина 
-struct vertex
-{
-	GLfloat x;
-	GLfloat y;
-	GLfloat z;
-};
-
-
 //! Проверка ошибок OpenGL, если есть то вывод в консоль тип ошибки 
-void checkOpenGLerror()
+void checkOpenGLerror(string str)
 {
 	GLenum errCode;
 	if ((errCode = glGetError()) != GL_NO_ERROR)
-		std::cout << "OpenGl error! - " << gluErrorString(errCode)<< "\n";
+		std::cout << "OpenGl error! - " << gluErrorString(errCode) << str << "\n";
 }
 
 //! Инициализация шейдеров 
 void initShader()
 {
+	//glShader.loadFiles("shaders/vertex3.txt", "shaders/fragment3.txt");
 	glShader.loadFiles("shaders/vertex31.txt", "shaders/fragment31.txt");
-	checkOpenGLerror();
+	checkOpenGLerror("initShader");
 }
 
 // Load and create a texture 
@@ -232,10 +156,36 @@ void text()
 }
 
 
+GLsizei indices_count = 0;
+
 //! Инициализация VBO 
 void initVBO()
 {
+	Model glModel = Model("untitled.obj");
+	std::vector<glm::vec3> vert = glModel.vertices_m;
+	std::vector<glm::vec2> tex_vert = glModel.tex_coords;
+	std::vector<glm::vec3> norm_vert = glModel.normals;
+	std::vector<GLint> indices = glModel.indices;
 
+	indices_count = indices.size();
+
+	glGenBuffers(1, &VBO_position);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO_position);
+	glBufferData(GL_ARRAY_BUFFER, vert.size() * sizeof(glm::vec3), &vert[0], GL_STATIC_DRAW);
+
+	glGenBuffers(1, &VBO_texcoord);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO_texcoord);
+	glBufferData(GL_ARRAY_BUFFER, tex_vert.size() * sizeof(glm::vec2), &tex_vert[0], GL_STATIC_DRAW);
+
+	glGenBuffers(1, &VBO_normal);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO_normal);
+	glBufferData(GL_ARRAY_BUFFER, norm_vert.size() * sizeof(glm::vec3), &norm_vert[0], GL_STATIC_DRAW);
+
+	glGenBuffers(1, &VBO_element);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VBO_element);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GL_UNSIGNED_INT), &indices[0], GL_STATIC_DRAW);
+
+	checkOpenGLerror("initVBO");
 }
 
 //! Освобождение буфера
@@ -243,10 +193,10 @@ void freeVBO()
 {
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-	glDeleteBuffers(1, &EBO);
-	glDeleteBuffers(1, &VBO);
-	glDeleteBuffers(1, &VAO);
-
+	glDeleteBuffers(1, &VBO_normal);
+	glDeleteBuffers(1, &VBO_texcoord);
+	glDeleteBuffers(1, &VBO_element);
+	glDeleteBuffers(1, &VBO_position);
 }
 double angle_x = 0;
 
@@ -255,6 +205,54 @@ void resizeWindow(int width, int height)
 	glViewport(0, 0, width, height);
 }
 
+/*
+//! Отрисовка 
+void render()
+{
+	angle_x += 0.0007;
+
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	glm::mat4 Projection = glm::perspective(glm::radians(45.0f), 4.0f / 3.0f, 0.1f, 1000.0f);
+	glm::mat4 View = glm::lookAt(glm::vec3(10, 10, 10), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+
+	glm::mat4 rotate_y = { glm::cos(angle_x), 0.0f, glm::sin(angle_x), 0.0f,
+					   0.0f, 1, 0, 0.0f,
+					   -glm::sin(angle_x),0, glm::cos(angle_x), 0.0f,
+					   0.0f, 0.0f, 0.0f, 1.0f };
+
+	Matrix_projection = Projection * View * rotate_y;
+
+	//! Устанавливаем шейдерную программу текущей 
+	glShader.use();
+	glShader.setUniform(glShader.getUniformLocation("matrix"), Matrix_projection);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VBO_element);
+
+	glEnableVertexAttribArray(glShader.getAttribLocation("texCoord"));
+	glBindBuffer(GL_ARRAY_BUFFER, VBO_texcoord);
+	glVertexAttribPointer(glShader.getAttribLocation("texCoord"), 2, GL_FLOAT, GL_FALSE, 0, 0);
+
+	glEnableVertexAttribArray(glShader.getAttribLocation("position"));
+	glBindBuffer(GL_ARRAY_BUFFER, VBO_position);
+	glVertexAttribPointer(glShader.getAttribLocation("position"), 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+	// Bind Textures using texture units
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glShader.setUniform(glShader.getUniformLocation("ourTexture"), 0);
+
+
+	glDrawElements(GL_TRIANGLES, indices_count, GL_UNSIGNED_INT, 0);
+
+	for (int i = 0; i < 2; i++)
+		glDisableVertexAttribArray(i);
+
+	glFlush();
+
+	checkOpenGLerror();
+	glutSwapBuffers();
+}*/
 
 //! Отрисовка 
 void render()
@@ -264,30 +262,22 @@ void render()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glm::mat4 Projection = glm::perspective(glm::radians(45.0f), 4.0f / 3.0f, 0.1f, 1000.0f);
-	glm::mat4 View = glm::lookAt(glm::vec3(40, 40, 40), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+	glm::mat4 View = glm::lookAt(glm::vec3(5, 0, 5), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
 
-	/*glm::mat4 rotate_y = { glm::cos(angle_x), 0.0f, glm::sin(angle_x), 0.0f,
+	glm::mat4 rotate_y = { glm::cos(angle_x), 0.0f, glm::sin(angle_x), 0.0f,
 					   0.0f, 1, 0, 0.0f,
 					   -glm::sin(angle_x),0, glm::cos(angle_x), 0.0f,
 					   0.0f, 0.0f, 0.0f, 1.0f };
 
-	Matrix_projection = Projection * View * rotate_y;*/
 
-	glm::mat4 rotate_x = glm::rotate(0.0f, vec3(1.0f, 0.0f, 0.0f));
-	glm::mat4 rotate_y = glm::rotate((float)angle_x, vec3(0.0f, 1.0f, 0.0f));
-	glm::mat4 rotate_z = glm::rotate(0.0f, vec3(0.0f, 0.0f, 1.0f));
-	glm::mat4 scale = glm::scale(vec3(1.0f, 1.0f, 1.0f));
-	glm::mat4 translate = glm::translate(vec3(0.0f, 1.0f, 0.0f));
-
-	//! Устанавливаем шейдерную программу текущей 
-
-	glm::mat4 Model = translate * rotate_x * rotate_y * rotate_z * scale; // для каждого нового объекта можно убрать лишние перемножения матриц
+	glm::mat4 Model = rotate_y;
 	glm::mat4 ViewProjection = Projection * View;
+
 	glm::mat3 normalMatrix = glm::transpose(glm::inverse(Model));
 
+	//! Устанавливаем шейдерную программу текущей 
 	glShader.use();
-	//glShader.setUniform(glShader.getUniformLocation("matrix"), Matrix_projection);
-
+	checkOpenGLerror("render");
 	glShader.setUniform(glShader.getUniformLocation("transform.model"), Model);
 	glShader.setUniform(glShader.getUniformLocation("transform.viewProjection"), ViewProjection);
 	glShader.setUniform(glShader.getUniformLocation("transform.normal"), normalMatrix);
@@ -296,56 +286,41 @@ void render()
 	set_uniform_point_light(glShader, get_some_point_light());
 	set_uniform_material(glShader, get_some_material());
 
-	// Устанавливаем указатели вершинных атрибутов
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VBO_element);
 
-	// Координаты вершин
 	glEnableVertexAttribArray(glShader.getAttribLocation("position"));
-	glVertexAttribPointer(glShader.getAttribLocation("position"), 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO_position);
+	glVertexAttribPointer(glShader.getAttribLocation("position"), 3, GL_FLOAT, GL_FALSE, 0, 0);
 
-	// Текстурные координаты вершин
 	glEnableVertexAttribArray(glShader.getAttribLocation("texcoord"));
-	glVertexAttribPointer(glShader.getAttribLocation("texcoord"), 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, TexCoords));
+	glBindBuffer(GL_ARRAY_BUFFER, VBO_texcoord);
+	glVertexAttribPointer(glShader.getAttribLocation("texcoord"), 2, GL_FLOAT, GL_FALSE, 0, 0);
 
-	// Нормали вершин
 	glEnableVertexAttribArray(glShader.getAttribLocation("normal"));
-	glVertexAttribPointer(glShader.getAttribLocation("normal"), 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Normal));
-
-	glBindVertexArray(0);
-
-
+	glBindBuffer(GL_ARRAY_BUFFER, VBO_normal);
+	glVertexAttribPointer(glShader.getAttribLocation("normal"), 3, GL_FLOAT, GL_FALSE, 0, 0);
 
 	// Bind Textures using texture units
-
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, texture);
-	glShader.setUniform(glShader.getUniformLocation("texture1"), 0);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, texture);
-	glShader.setUniform(glShader.getUniformLocation("texture2"), 0);
+	glShader.setUniform(glShader.getUniformLocation("ourTexture"), 0);
 
-	GLsizei count = 0;
-	for (auto mesh : OURmodel.meshes)
-		count += mesh.indices.size();
 
-	// Draw container
-	glBindVertexArray(VAO);
-	glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, 0);
-	glBindVertexArray(0);
+	glDrawElements(GL_TRIANGLES, indices_count, GL_UNSIGNED_INT, 0);
+
+	for (int i = 0; i < 2; i++)
+		glDisableVertexAttribArray(i);
 
 	glFlush();
 
-	//checkOpenGLerror();
 
 	glutSwapBuffers();
-
-	//! Отключаем шейдерную программу  
-	glUseProgram(0);
 }
 
 
 int main(int argc, char** argv)
 {
-	setlocale(0, "RU");
+	setlocale(0, "");
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DEPTH | GLUT_RGBA | GLUT_ALPHA | GLUT_DOUBLE);
 	glutInitWindowSize(1000, 800);
@@ -374,8 +349,7 @@ int main(int argc, char** argv)
 	glClearColor(0.5, 0.5, 0.5, 0);
 
 	text();
-	OURmodel = Model("medieval house.obj");
-	//initVBO();
+	initVBO();
 	initShader();
 	glutReshapeFunc(resizeWindow);
 	glutIdleFunc(render);

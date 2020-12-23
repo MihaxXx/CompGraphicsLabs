@@ -52,6 +52,7 @@ public:
 	void setUniform(GLint location, const vec3& value);
 	void setUniform(GLint location, const vec2& value);
 	void setUniform(GLint location, const mat4& value);
+	void setUniform(GLint location, const mat3& value);
 	void setUniform(GLint location, const GLint value);
 	void setUniform(GLint location, const GLuint value);
 	void setUniform(GLint location, const GLfloat value);

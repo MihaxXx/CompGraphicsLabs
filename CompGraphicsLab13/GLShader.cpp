@@ -117,6 +117,9 @@ void GLShader::setUniform(GLint location, const vec2& value){
 void GLShader::setUniform(GLint location, const mat4& value){
 	glUniformMatrix4fv(location, 1, GL_FALSE, &value[0][0]);
 }
+void GLShader::setUniform(GLint location, const mat3& value) {
+	glUniformMatrix3fv(location, 1, GL_FALSE, &value[0][0]);
+}
 void GLShader::setUniform(GLint location, const GLint value){
 	glUniform1i(location, value);
 }
