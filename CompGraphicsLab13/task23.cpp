@@ -24,9 +24,7 @@ GLint Unif_matrix;
 
 glm::mat4 Matrix_projection;
 
-GLuint VBO, VAO, EBO;
-
-GLuint VBO_position, VBO_texcoord, VBO_normal, VBO_element;
+GLuint VBO_position, VBO_texcoord, VBO_normal, EBO;
 
 class Model
 {
@@ -182,8 +180,8 @@ void initVBO()
 	glBindBuffer(GL_ARRAY_BUFFER, VBO_normal);
 	glBufferData(GL_ARRAY_BUFFER, norm_vert.size() * sizeof(glm::vec3), &norm_vert[0], GL_STATIC_DRAW);
 
-	glGenBuffers(1, &VBO_element);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VBO_element);
+	glGenBuffers(1, &EBO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GL_UNSIGNED_INT), &indices[0], GL_STATIC_DRAW);
 
 	checkOpenGLerror("initVBO");
@@ -196,7 +194,7 @@ void freeVBO()
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	glDeleteBuffers(1, &VBO_normal);
 	glDeleteBuffers(1, &VBO_texcoord);
-	glDeleteBuffers(1, &VBO_element);
+	glDeleteBuffers(1, &EBO);
 	glDeleteBuffers(1, &VBO_position);
 }
 double angle_x = 0;
@@ -229,16 +227,25 @@ void render()
 
 	//! Устанавливаем шейдерную программу текущей 
 	glShader.use();
-	checkOpenGLerror("render");
 	glShader.setUniform(glShader.getUniformLocation("transform.model"), Model);
 	glShader.setUniform(glShader.getUniformLocation("transform.viewProjection"), ViewProjection);
 	glShader.setUniform(glShader.getUniformLocation("transform.normal"), normalMatrix);
 	glShader.setUniform(glShader.getUniformLocation("transform.viewPosition"), vec3(4, 3, 3));
 
-	set_uniform_point_light(glShader, get_some_point_light());
-	set_uniform_material(glShader, get_some_material());
+	set_uniform_point_light(glShader, new_point_light(glm::vec4(3, 0, 2, 1.0), // position
+													  glm::vec4(0.4, 0.4, 0.4, 1.0), // ambient
+													  glm::vec4(0.7, 0.7, 0.7, 1.0), // diffuse
+													  glm::vec4(1.0, 1.0, 1.0, 1.0), // specular
+													  glm::vec3(0.1, 0.1, 0.1))); // attenuation
 
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VBO_element);
+	set_uniform_material(glShader, new_material(glm::vec4(0.2, 0.2, 0.2, 1.0), // ambient
+												glm::vec4(0.7, 0.7, 0.7, 1.0), // diffuse
+												glm::vec4(0.4, 0.4, 0.4, 1.0), // specular
+												glm::vec4(0.1, 0.1, 0.1, 1.0), // emission
+												0.1 * 128, // shininess
+												glm::vec4(0.7, 0.0, 0.7, 1.0))); // color
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 
 	glEnableVertexAttribArray(glShader.getAttribLocation("position"));
 	glBindBuffer(GL_ARRAY_BUFFER, VBO_position);
@@ -266,6 +273,7 @@ void render()
 
 	glFlush();
 	glutSwapBuffers();
+	checkOpenGLerror("render");
 }
 
 
