@@ -244,9 +244,7 @@ void resizeWindow(int width, int height)
 {
 	glViewport(0, 0, width, height);
 }
-//string path = "C:\\Users\\Mikhail\\source\\repos\\CompGraphicsLabs\\CompGraphicsLab13\\";
-//auto un = Model("untitled.obj");
-auto medieval_house = Model("medieval house.obj");
+
 auto spider = Model("spider.obj");
 auto deer = Model("deer.obj");
 auto ChristmasTree = Model("toon_pine.obj");
