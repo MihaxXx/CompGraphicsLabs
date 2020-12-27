@@ -145,36 +145,45 @@ void initShader()
 // Load and create a texture 
 GLuint texture;
 GLuint texture2;
-void text()
+GLuint texture3;
+GLuint texture4;
+GLuint texture5;
+
+void load_tex(string path, GLuint* texture)
 {
-	// Текстура 1
-	glGenTextures(1, &texture);
-	glBindTexture(GL_TEXTURE_2D, texture); 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-	int width, height;
-	unsigned char* image = SOIL_load_image("img/list.jpg", &width, &height, 0, SOIL_LOAD_RGB);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
-	glGenerateMipmap(GL_TEXTURE_2D);
-	SOIL_free_image_data(image);
-	glBindTexture(GL_TEXTURE_2D, 0); 
-
-	// Текстура 2
-	glGenTextures(1, &texture2);
-	glBindTexture(GL_TEXTURE_2D, texture2);
+	glGenTextures(1, texture);
+	glBindTexture(GL_TEXTURE_2D, *texture);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-	image = SOIL_load_image("img/car.jpg", &width, &height, 0, SOIL_LOAD_RGB);
+	int width, height;
+	unsigned char* image = SOIL_load_image(path.c_str(), &width, &height, 0, SOIL_LOAD_RGB);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
 	glGenerateMipmap(GL_TEXTURE_2D);
 	SOIL_free_image_data(image);
 	glBindTexture(GL_TEXTURE_2D, 0);
+
+	checkOpenGLerror("load_tex " + path);
+}
+
+void text()
+{
+	// Текстура 1
+	load_tex("img/deer1.jpg",&texture);
+	
+	// Текстура 2
+	load_tex("img/Mario.png", &texture2);
+	
+	// Текстура 3
+	load_tex("img/toon_pine.png", &texture3);
+
+	// Текстура 4
+	load_tex("img/SpiderTex.jpg", &texture4);
+
+	// Текстура 5
+	load_tex("img/Fantasy_House_6.png", &texture5);
 }
 
 
@@ -235,13 +244,14 @@ void resizeWindow(int width, int height)
 {
 	glViewport(0, 0, width, height);
 }
-string path = "C:\\Users\\Mikhail\\source\\repos\\CompGraphicsLabs\\CompGraphicsLab13\\";
+//string path = "C:\\Users\\Mikhail\\source\\repos\\CompGraphicsLabs\\CompGraphicsLab13\\";
 //auto un = Model("untitled.obj");
 auto medieval_house = Model("medieval house.obj");
-auto spider = Model((path + "spider.obj").c_str());
-auto deer = Model((path+"deer.obj").c_str());
-auto ChristmasTree = Model((path + "Christmas Tree.obj").c_str());
-auto Mario = Model((path + "Mario.obj").c_str());
+auto spider = Model("spider.obj");
+auto deer = Model("deer.obj");
+auto ChristmasTree = Model("toon_pine.obj");
+auto Mario = Model("Mario.obj");
+auto Fantasy_House = Model("Fantasy_House_6.obj");
 
 void bindAttribs()
 {
@@ -263,12 +273,12 @@ void bindAttribs()
 //! Отрисовка 
 void render()
 {
-	angle_x += 0.0007;
+	angle_x += 0.002;
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glm::mat4 Projection = glm::perspective(glm::radians(45.0f), 4.0f / 3.0f, 0.1f, 1000.0f);
-	glm::mat4 View = glm::lookAt(glm::vec3(5, 5, 5), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+	glm::mat4 View = glm::lookAt(glm::vec3(0, 5, 12), glm::vec3(0, 2.f, 0), glm::vec3(0, 1, 0));
 	glm::mat4 ViewProjection = Projection * View;
 
 	glm::mat4 rotate_y = { glm::cos(angle_x), 0.0f, glm::sin(angle_x), 0.0f,
@@ -277,25 +287,16 @@ void render()
 					   0.0f, 0.0f, 0.0f, 1.0f };
 
 
-	glm::mat4 Model_v = rotate_y * glm::scale(glm::mat4(1.f), glm::vec3(1 / 3.f, 1 / 3.f, 1 / 3.f));
-	
-
-	glm::mat3 normalMatrix = glm::transpose(glm::inverse(Model_v));
-
-	bindVBO(medieval_house);
-
 	//! Устанавливаем шейдерную программу текущей 
 	glShader.use();
-	glShader.setUniform(glShader.getUniformLocation("transform.model"), Model_v);
-	glShader.setUniform(glShader.getUniformLocation("transform.normal"), normalMatrix);
 	glShader.setUniform(glShader.getUniformLocation("transform.viewProjection"), ViewProjection);
 	glShader.setUniform(glShader.getUniformLocation("transform.viewPosition"), vec3(4, 3, 3));
 
-	set_uniform_point_light(glShader, new_point_light(glm::vec4(3, 0, 2, 1.0), // position
+	set_uniform_point_light(glShader, new_point_light(glm::vec4(0, 2, 4, 1.0), // position
 													  glm::vec4(0.4, 0.4, 0.4, 1.0), // ambient
 													  glm::vec4(0.7, 0.7, 0.7, 1.0), // diffuse
 													  glm::vec4(1.0, 1.0, 1.0, 1.0), // specular
-													  glm::vec3(0.1, 0.1, 0.1))); // attenuation
+													  glm::vec3(0.5, 0.05, 0.05))); // attenuation
 
 	set_uniform_material(glShader, new_material(glm::vec4(0.2, 0.2, 0.2, 1.0), // ambient
 												glm::vec4(0.7, 0.7, 0.7, 1.0), // diffuse
@@ -303,8 +304,37 @@ void render()
 												glm::vec4(0.1, 0.1, 0.1, 1.0), // emission
 												0.1 * 128, // shininess
 												glm::vec4(0.7, 0.0, 0.7, 1.0))); // color
+	////Fantasy_House
 
-	
+	bindVBO(Fantasy_House);
+	glm::mat4 Model_v = rotate_y * glm::scale(glm::mat4(1.f), glm::vec3(1 / 70.f, 1 / 70.f, 1 / 70.f));
+	glm::mat3 normalMatrix = glm::transpose(glm::inverse(Model_v));
+
+	glShader.setUniform(glShader.getUniformLocation("transform.model"), Model_v);
+	glShader.setUniform(glShader.getUniformLocation("transform.normal"), normalMatrix);
+
+	bindAttribs();
+
+	// Bind Textures using texture units
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texture5);
+	glShader.setUniform(glShader.getUniformLocation("ourTexture"), 0);
+
+
+	glDrawElements(GL_TRIANGLES, indices_count, GL_UNSIGNED_INT, 0);
+
+	////deer
+
+	bindVBO(deer);
+
+	Model_v = rotate_y *
+		glm::scale(glm::mat4(1.f), glm::vec3(1 / 150.f, 1 / 150.f, 1 / 150.f)) *
+		glm::translate(glm::mat4(1.0f), glm::vec3(200.0f, 0.0f, 350));
+	normalMatrix = glm::transpose(glm::inverse(Model_v));
+
+	glShader.setUniform(glShader.getUniformLocation("transform.model"), Model_v);
+	glShader.setUniform(glShader.getUniformLocation("transform.normal"), normalMatrix);
+
 
 	bindAttribs();
 
@@ -312,7 +342,6 @@ void render()
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, texture);
 	glShader.setUniform(glShader.getUniformLocation("ourTexture"), 0);
-
 
 	glDrawElements(GL_TRIANGLES, indices_count, GL_UNSIGNED_INT, 0);
 
@@ -331,31 +360,22 @@ void render()
 
 	
 	bindAttribs();
+	// Bind Textures using texture units
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texture4);
+	glShader.setUniform(glShader.getUniformLocation("ourTexture"), 0);
+
 	glDrawElements(GL_TRIANGLES, indices_count, GL_UNSIGNED_INT, 0);
 
-	////deer
 
-	bindVBO(deer);
-
-	Model_v = rotate_y * 
-		glm::scale(glm::mat4(1.f), glm::vec3(1 / 150.f, 1 / 150.f, 1 / 150.f)) * 
-		glm::translate(glm::mat4(1.0f), glm::vec3(200.0f, 0.0f, 350));
-	normalMatrix = glm::transpose(glm::inverse(Model_v));
-
-	glShader.setUniform(glShader.getUniformLocation("transform.model"), Model_v);
-	glShader.setUniform(glShader.getUniformLocation("transform.normal"), normalMatrix);
-
-
-	bindAttribs();
-	glDrawElements(GL_TRIANGLES, indices_count, GL_UNSIGNED_INT, 0);
 
 	////ChristmasTree
 
 	bindVBO(ChristmasTree);
 
 	Model_v = rotate_y *
-		glm::scale(glm::mat4(1.f), glm::vec3(1 / 10.f, 1 / 10.f, 1 / 10.f)) 
-		*glm::translate(glm::mat4(1.0f), glm::vec3(-20.0f, 0.0f, 25.0f));
+		glm::scale(glm::mat4(1.f), glm::vec3(1 / 100.f, 1 / 100.f, 1 / 100.f)) 
+		*glm::translate(glm::mat4(1.0f), glm::vec3(-200.0f, 0.0f, 250.0f));
 	normalMatrix = glm::transpose(glm::inverse(Model_v));
 
 	glShader.setUniform(glShader.getUniformLocation("transform.model"), Model_v);
@@ -363,10 +383,14 @@ void render()
 
 
 	bindAttribs();
+	// Bind Textures using texture units
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texture3);
+	glShader.setUniform(glShader.getUniformLocation("ourTexture"), 0);
+
 	glDrawElements(GL_TRIANGLES, indices_count, GL_UNSIGNED_INT, 0);
 
 	////Mario
-	
 	
 	bindVBO(Mario);
 
