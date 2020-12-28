@@ -13,7 +13,7 @@ uniform struct Material{
 	vec4 specular;
 	vec4 emission;
 	float shininess;
-	vec4 color_obj;
+	vec4 color;
 } material;
 
 in struct Vertex {
@@ -24,8 +24,7 @@ in struct Vertex {
 	float distance;
 } Vert;
 uniform sampler2D ourTexture;
-uniform sampler2D ourTexture2;
 void main() 
 {
-	gl_FragColor = mix(texture(ourTexture, Vert.texcoord), texture(ourTexture2, Vert.texcoord), 0.5);
+	gl_FragColor = mix(texture(ourTexture, Vert.texcoord), material.color, 0.5);
 }

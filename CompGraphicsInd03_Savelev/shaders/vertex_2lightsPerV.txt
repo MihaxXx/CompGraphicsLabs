@@ -1,0 +1,40 @@
+#version 330 core
+
+in vec3 position;
+in vec2 texcoord;
+in vec3 normal;
+uniform struct Transform {
+	mat4 model;
+	mat4 viewProjection;
+	mat3 normal;
+	vec3 viewPosition;
+} transform;
+
+struct PointLight{
+	vec4 position;
+	vec4 ambient;
+	vec4 diffuse;
+	vec4 specular;
+	vec3 attenuation;
+};
+
+uniform PointLight light;
+
+uniform PointLight light2;
+
+out float lightness;
+out float lightness2;
+out vec2 UV;
+
+
+void main() {
+	vec4 vertex = transform.model * vec4(position, 1.0);
+	vec4 lightDir = normalize(light.position - vertex);
+	vec4 light2Dir = normalize(light2.position - vertex);
+	float t = dot(vec3(lightDir.r, lightDir.g, lightDir.b), normalize(transform.normal * normal));
+	float t2 = dot(vec3(light2Dir.r, light2Dir.g, light2Dir.b), normalize(transform.normal * normal));
+	lightness = t;
+	lightness2 = t;
+	UV = texcoord;
+	gl_Position = transform.viewProjection * vertex;
+}

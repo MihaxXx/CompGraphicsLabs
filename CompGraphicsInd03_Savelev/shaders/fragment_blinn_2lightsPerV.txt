@@ -1,0 +1,35 @@
+#version 330 core
+
+struct PointLight{
+	vec4 position;
+	vec4 ambient;
+	vec4 diffuse;
+	vec4 specular;
+	vec3 attenuation;
+};
+
+uniform PointLight light;
+
+uniform PointLight light2;
+
+uniform struct Material {
+	vec4 ambient;
+	vec4 diffuse;
+	vec4 specular;
+	vec4 emission;
+	float shininess;
+	vec4 color;
+} material;
+
+in float lightness;
+in float lightness2;
+in vec2 UV;
+
+uniform sampler2D ourTexture;
+
+void main(void){
+	vec4 color = material.emission;
+	color += texture(ourTexture, UV) * max(light.diffuse * lightness, light2.diffuse * lightness2);
+	
+	gl_FragColor = color;
+}

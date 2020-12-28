@@ -35,9 +35,6 @@
     </CopyFileToFolders>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="task1.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="GLShader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

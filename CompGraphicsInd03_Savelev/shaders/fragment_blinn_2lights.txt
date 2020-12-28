@@ -1,0 +1,55 @@
+#version 330 core
+
+struct PointLight{
+	vec4 position;
+	vec4 ambient;
+	vec4 diffuse;
+	vec4 specular;
+	vec3 attenuation;
+};
+
+uniform PointLight light;
+
+uniform PointLight light2;
+
+uniform struct Material {
+	vec4 ambient;
+	vec4 diffuse;
+	vec4 specular;
+	vec4 emission;
+	float shininess;
+	vec4 color;
+} material;
+in struct Vertex {
+	vec2 texcoord;
+	vec3 normal;
+	vec3 lightDir;
+	vec3 light2Dir;
+	vec3 viewDir;
+	float distance;
+} Vert;
+uniform sampler2D ourTexture;
+void main(void){
+	vec3 normal = normalize(Vert.normal);
+	vec3 lightDir = normalize(Vert.lightDir);
+	vec3 light2Dir = normalize(Vert.light2Dir);
+	vec3 viewDir = normalize(Vert.viewDir);
+	
+	float attenuation = 1.0 / (light.attenuation[0] + light.attenuation[1] * Vert.distance + light.attenuation[2] * Vert.distance * Vert.distance);
+	float attenuation2 = 1.0 / (light2.attenuation[0] + light2.attenuation[1] * Vert.distance + light2.attenuation[2] * Vert.distance * Vert.distance);
+	vec4 color = material.emission;
+	color += material.ambient * light.ambient * attenuation;
+	color += material.ambient * light2.ambient * attenuation;
+	float Ndot = max(dot(normal, lightDir), 0.0);
+	float Ndot2 = max(dot(normal, light2Dir), 0.0);
+	color += material.diffuse * light.diffuse * Ndot * attenuation;
+	color += material.diffuse * light2.diffuse * Ndot2 * attenuation;
+	vec3 H = normalize(lightDir + viewDir);
+	vec3 H2 = normalize(light2Dir + viewDir);
+	float RdotVpow = max(pow(dot(normal, H), material.shininess), 0.0);
+	float RdotVpow2 = max(pow(dot(normal, H2), material.shininess), 0.0);
+	color += material.specular * light.specular * RdotVpow * attenuation;
+	color += material.specular * light2.specular * RdotVpow2 * attenuation;
+	
+	gl_FragColor = color  * texture(ourTexture, Vert.texcoord);
+}

@@ -28,6 +28,11 @@ glm::mat4 Matrix_projection;
 
 GLuint VBO_position, VBO_texcoord, VBO_normal, EBO;
 
+//#define TWOLIGHTS
+//#define MIXT
+//#define MIXC
+//#define PERVERT
+//#define PROJ
 
 
 class Model
@@ -136,7 +141,21 @@ void checkOpenGLerror(string str)
 //! Инициализация шейдеров 
 void initShader()
 {
+#ifdef TWOLIGHTS
+	glShader.loadFiles("shaders/vertex_2lights.txt", "shaders/fragment_blinn_2lights.txt");
+#elif defined(MIXT)
+	glShader.loadFiles("shaders/vertex.txt", "shaders/fragment.txt");
+#elif defined(MIXC)
+	glShader.loadFiles("shaders/vertex.txt", "shaders/fragment_mixC.txt");
+#elif defined(PERVERT)
+	glShader.loadFiles("shaders/vertex_2lightsPerV.txt", "shaders/fragment_blinn_2lightsPerV.txt");
+#elif defined(PROJ)
+	glShader.loadFiles("shaders/vertex_Proj.txt", "shaders/fragment_proj.txt");
+#else
 	glShader.loadFiles("shaders/vertex_light.txt", "shaders/fragment_blinn.txt");
+#endif 
+
+
 	//glShader.loadFiles("shaders/vertex_light.txt", "shaders/fragment_toon_shading.txt");
 	//glShader.loadFiles("shaders/vertex_light.txt", "shaders/fragment_bidirectional.txt");
 	checkOpenGLerror("initShader");
@@ -290,11 +309,28 @@ void render()
 	glShader.setUniform(glShader.getUniformLocation("transform.viewProjection"), ViewProjection);
 	glShader.setUniform(glShader.getUniformLocation("transform.viewPosition"), vec3(4, 3, 3));
 
-	set_uniform_point_light(glShader, new_point_light(glm::vec4(0, 2, 4, 1.0), // position
+	set_uniform_point_light(glShader, new_point_light(glm::vec4(2, 2, 4, 1.0), // position
 													  glm::vec4(0.4, 0.4, 0.4, 1.0), // ambient
 													  glm::vec4(0.7, 0.7, 0.7, 1.0), // diffuse
 													  glm::vec4(1.0, 1.0, 1.0, 1.0), // specular
-													  glm::vec3(0.5, 0.05, 0.05))); // attenuation
+													  glm::vec3(0.05, 0.05, 0.05))); // attenuation
+#if defined(TWOLIGHTS) || defined(PERVERT)
+	set_uniform_point_light(glShader, new_point_light(glm::vec4(-2, 2, 4, 1.0), // position
+		glm::vec4(0.4, 0.4, 0.4, 1.0), // ambient
+		glm::vec4(0.7, 0.7, 0.7, 1.0), // diffuse
+		glm::vec4(1.0, 1.0, 1.0, 1.0), // specular
+		glm::vec3(0.05, 0.05, 0.05)),"light2"); // attenuation
+#elif defined (PROJ)
+	checkOpenGLerror("not set_uniform_spotlight");
+	set_uniform_spotlight(glShader, new_spotlight(rotate_y * glm::vec4(-2, 2, 4, 1.0), // position
+		glm::vec4(0.4, 0.4, 0.4, 1.0), // ambient
+		glm::vec4(0.7, 0.7, 0.7, 1.0), // diffuse
+		glm::vec4(1.0, 1.0, 1.0, 1.0), // specular
+		glm::vec3(0.05, 0.05, 0.05), // attenuation
+		glm::vec4(0.0, 0.0, 1.0, 0.0),//direction
+		0.4f));//angle
+	checkOpenGLerror("set_uniform_spotlight");
+#endif //TWOLIGHTS
 
 	set_uniform_material(glShader, new_material(glm::vec4(0.2, 0.2, 0.2, 1.0), // ambient
 												glm::vec4(0.7, 0.7, 0.7, 1.0), // diffuse
@@ -302,6 +338,13 @@ void render()
 												glm::vec4(0.1, 0.1, 0.1, 1.0), // emission
 												0.1 * 128, // shininess
 												glm::vec4(0.7, 0.0, 0.7, 1.0))); // color
+
+#ifdef MIXT
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, texture2);
+	glShader.setUniform(glShader.getUniformLocation("ourTexture2"), 1);
+#endif //MIXT
+
 	////Fantasy_House
 
 	bindVBO(Fantasy_House);
@@ -385,6 +428,7 @@ void render()
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, texture3);
 	glShader.setUniform(glShader.getUniformLocation("ourTexture"), 0);
+
 
 	glDrawElements(GL_TRIANGLES, indices_count, GL_UNSIGNED_INT, 0);
 
