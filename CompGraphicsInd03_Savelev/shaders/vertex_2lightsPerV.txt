@@ -34,7 +34,7 @@ void main() {
 	float t = dot(vec3(lightDir.r, lightDir.g, lightDir.b), normalize(transform.normal * normal));
 	float t2 = dot(vec3(light2Dir.r, light2Dir.g, light2Dir.b), normalize(transform.normal * normal));
 	lightness = t;
-	lightness2 = t;
+	lightness2 = t2;
 	UV = texcoord;
 	gl_Position = transform.viewProjection * vertex;
 }
